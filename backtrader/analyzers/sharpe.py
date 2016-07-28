@@ -108,16 +108,15 @@ class SharpeRatio(Analyzer):
             self.ratio = retavg / retdev
         else:
             rate = self.p.riskfreerate
-            if self.p.convertrate:
-                factor = None
-                if self.p.timeframe in self.RATEFACTORS:
-                    # rate provided on an annual basis ... downgrade it
-                    factor = self.RATEFACTORS[self.p.timeframe]
-                elif self.p.timeframe == TimeFrame.Days:
-                    factor = self.p.daysfactor
+            factor = None
+            if self.p.timeframe in self.RATEFACTORS:
+                # rate provided on an annual basis ... downgrade it
+                factor = self.RATEFACTORS[self.p.timeframe]
+            elif self.p.timeframe == TimeFrame.Days:
+                factor = self.p.daysfactor
 
-                if factor is not None:
-                    rate = math.pow(1.0 + rate, 1.0 / factor) - 1.0
+            if factor is not None:
+                rate = math.pow(1.0 + rate, 1.0 / factor) - 1.0
 
             returns = list(itervalues(self.timereturn.get_analysis()))
             retfree = itertools.repeat(rate)
@@ -126,5 +125,8 @@ class SharpeRatio(Analyzer):
             ret_free_avg = average(list(ret_free))
             retdev = standarddev(returns)
 
-            self.ratio = ret_free_avg / retdev
+            if retdev != 0:
+                self.ratio = ret_free_avg / retdev if self.p.convertrate else (factor ** .5) * ret_free_avg / retdev
+            else:
+                self.ratio = None
             self.rets['sharperatio'] = self.ratio
